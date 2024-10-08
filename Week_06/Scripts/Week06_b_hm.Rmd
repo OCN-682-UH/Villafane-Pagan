@@ -1,0 +1,61 @@
+---
+title: "Week06 RMarkdown Homework"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-10-06"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message=FALSE, 
+                      warning=FALSE,
+                      fig.path = "../Output/")
+```
+#**Introduction**
+
+The homework is focused on using _"RMarkdown"_ and SGD Biochemistry data for the _Black Point (BP)_ and _Wailupe (W)_ Oahu Hawaii. The code is focused on how salinity changes are influence by tide (low/high). A table mas build to see the mean values of salinity based on Day and Night High Tide and Day and Night Low tide.
+
+```{r}
+library(tidyverse)
+library(here)
+library(kableExtra)
+```
+
+#**Inspect data**
+```{r}
+ChemData_new<-read_csv(here("Week_04","Data", "chemicaldata_maunalua.csv"))
+glimpse(ChemData_new)
+```
+
+#**Make a plot**
+```{r sgd_salTemp, fig.align='center'}
+ChemData_new %>%
+ ggplot(aes(x = Tide_time, #Plotting Tide vs Salinity graph
+            y = Salinity, 
+            color = Temp_in)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Characterization of Blak Point and Wailupe SGD",
+       subtitle = "Tide-Controlled Salinity Values",
+      x = "Tide",
+       y = "Salinity (PPT)") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5),  # Center the title
+    plot.subtitle = element_text(hjust = 0.5)  # Center the subtitle
+  )
+
+```
+
+#**Table**
+```{r}
+ChemData_new %>%
+  group_by(Tide_time) %>%  # Change to the variable you want to group by
+  summarise(mean_salinity = mean(Salinity, na.rm = TRUE)) %>%
+  kbl(caption = "Table 1.0: Mean Salinity by Tide Time") %>%
+  kable_classic(full_width = F, html_font = "Cambria") %>%
+  kable_styling(bootstrap_options = c("bordered", "striped", "hover")) 
+```
+
