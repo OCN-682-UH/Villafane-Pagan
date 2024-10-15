@@ -1,0 +1,129 @@
+---
+title: "Homework Week 07"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-10-15"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE, 
+                      warning=FALSE) 
+                      
+```
+
+#Introduction
+Today we are making a map using RMarkdown with Plastic pollution datasets from past Tidy Tuesdays.The global movement envisioning a future free from plastic pollution.Since its launch in 2016, more than 13,000 organizations and individual supporters from across the world have joined the #BreakFreeFromPlastic movement to demand massive reductions in single-use plastics and to push for lasting solutions to the plastic pollution crisis.
+
+![Toxic Tours](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-01-26/pic1.png?raw=true)
+
+
+#Load libraries 
+```{r}
+library(tidyverse)
+library(here)
+library(maps)
+library(mapdata)
+library(mapproj)
+library(fs)
+library(ggspatial)
+```
+
+# Inspect the data
+```{r}
+
+plastics<-read_csv(here("Week_07","data","plastics.csv"))
+
+glimpse(plastics)
+
+view(plastics)
+```
+#Make a world map
+
+```{r}
+# Summarize total plastic pollution by country
+country_summary <- plastics %>%
+  group_by(country) %>%
+  summarize(total_plastic = sum(grand_total, na.rm = TRUE), .groups = 'drop')
+
+# Load world map data
+world_map <- map_data("world")
+
+# Check if USA is in the country_summary and rename if necessary
+country_summary <- country_summary %>%
+  mutate(country = ifelse(country == "USA", "United States of America", country))
+
+# Merge the country summary with the world map data
+map_data <- world_map %>%
+  left_join(country_summary, by = c("region" = "country"))
+
+# Plot the world map
+ggplot(data = map_data) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = total_plastic), color = "black") +
+  scale_fill_viridis_c(na.value = "gray", name = "Total Plastic (units)") +
+  labs(title = "Global Plastic Pollution by Country") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold")) +  # Center title
+  coord_sf(crs = 4326) +  # Use appropriate coordinate system
+  annotation_scale(location = "bl", 
+                   bar_cols = c("black", "white"), 
+                   units = "km",  # Set units
+                   width_hint = 0.5) + 
+  annotation_north_arrow(location = "tr",
+                       style = north_arrow_fancy_orienteering(),
+                       height = unit(1, "cm"),
+                       width = unit(1, "cm"),
+                       rotation = 0)  
+
+```
+
+
+#Make a Europe focused map 2020
+```{r}
+
+# Filter for the year 2020
+plastics_2020 <- plastics %>%
+  filter(year == 2020)
+
+# Summarize total plastic pollution by country for 2020
+country_summary <- plastics_2020 %>%
+  group_by(country) %>%
+  summarize(total_plastic = sum(grand_total, na.rm = TRUE), .groups = 'drop')
+
+# Load world map data
+world_map <- map_data("world")
+
+# Keep all European countries in the map, including those without data
+europe_map <- world_map %>%
+  filter(region %in% unique(c(country_summary$country, world_map$region)))
+
+# Merge the country summary with the world map data
+map_data <- europe_map %>%
+  left_join(country_summary, by = c("region" = "country"))
+
+# Plot the Europe map with zoom for 2020 data
+ggplot(data = map_data) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = total_plastic), color = "black") +
+  scale_fill_viridis_c(na.value = "gray", name = "Total Plastic (units)") +
+  labs(title = "Plastic Pollution by Country in Europe (2020)") +
+  theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold")) +  # Center title
+  coord_fixed(xlim = c(-10, 40), ylim = c(35, 60)) + #Adjust limits for zoom
+  annotation_scale(bar_cols = c("black", "white"), location = "bl", units = "mi" ) +
+  annotation_north_arrow(location = "tr",
+                       style = north_arrow_fancy_orienteering(),
+                       height = unit(1, "cm"),
+                       width = unit(1, "cm"),
+                       rotation = 0)  
+
+```
+```{r}
+ggsave(here("Week_07","Output","PlasticsMap.pdf"))
+```
+
+
+
+
+
