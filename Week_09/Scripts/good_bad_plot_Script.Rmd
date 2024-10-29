@@ -1,0 +1,142 @@
+---
+title: "Goodplot/Badplot"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-10-26"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE, 
+                      warning=FALSE)
+                      
+```
+
+
+#Introduction 
+The homework is to creating two version of similar plots, using Taylor Swift data. Welcome to the bad plot/good plot!
+
+
+
+![Taylor](https://preview.redd.it/every-artist-has-taylors-version-v0-6igip3ycs57c1.jpeg?auto=webp&s=b1f7507aae766f7b0248918719af40d5e1c590bc)
+
+
+
+#Load libraries 
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(here)
+library(taylor)
+library(ggplot2)
+library(dplyr)
+library(tayloRswift)
+library(gganimate)
+
+
+```
+
+# Inspect the data
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load(2023, week = 42)
+
+taylor_album_songs <- tuesdata$taylor_album_songs
+taylor_all_songs <- tuesdata$taylor_all_songs
+taylor_albums <- tuesdata$taylor_albums
+
+glimpse(taylor_album_songs)
+glimpse(taylor_all_songs)
+glimpse(taylor_albums)
+
+view(taylor_album_songs)
+view(taylor_all_songs)
+view(taylor_albums)
+
+```
+
+
+```{r}
+
+# scatter plot of Metacritic Score by Album Release Date
+ggplot(taylor_albums, aes(x = album_release, 
+                          y = metacritic_score, 
+                          color = album_name)) + 
+  geom_point(size = 5) +  
+  geom_line(aes(group = album_name), size = 2) +  # Connect points with a trend line
+  geom_smooth(method = "loess", se = FALSE, color = "black", linetype = "dashed") +
+  geom_text(aes(label = album_name), vjust = -1, size = 3, face = "bold") +  # Add album names as labels above points
+  labs(title = "Taylor Swift Discography Evolution",
+       subtitle =  "Metacritic given score by musical album relased (2006 to 2022)",
+       x = "Album Release Date",
+       y = "Metacritic Score") +
+  
+  scale_color_taylor(palette = "taylorRed") +  # Apply Taylor's color palette
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.75, face = "bold"),  # Center and bold the title
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +  # Remove the legend 
+         ylim(65, 95) 
+  
+  
+
+```
+
+#Bad plot
+The plot represent a *bad plot*, due to several variables show at the same time:                                        -Ugly-Multiple legends; one on the side (album_name) and labels (album_name and %)
+  -the data is shown on a pie chart-the labels can't be seeing, the chart is space inefficient
+  -the chart can't be understand 
+
+```{r}
+# Prepare data for the pie chart
+pie_data <- taylor_albums %>%
+  group_by(album_name) %>%
+  summarise(total_score = sum(metacritic_score, na.rm = TRUE)) %>%
+  mutate(percentage = total_score / sum(total_score) * 100) %>%
+  mutate(label = paste(album_name, round(percentage, 1), "%", sep = " "))
+
+# Create the pie chart
+ggplot(pie_data, aes(x = "", 
+                     y = percentage, 
+                     fill = album_name)) +
+  geom_bar(stat = "identity", width = 5) +
+  coord_polar("y") +  # Convert to polar coordinates to plot on pie
+  labs(title = "Taylor Swift Metacritic Score by Album") +
+                scale_fill_taylor(palette = "taylorRed")+ # Apply Taylor's color palette
+  theme_void() +  # Remove background and axes
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5))  # Add labels
+  
+
+
+```
+
+#Good Plot
+
+The plot represents a **good plot**:    
+    -Facets by album, allowing each album to have it own subplot    
+    -Shows a distribution shape for better data visualization  
+    -Good color use  -Data looks organize 
+
+
+```{r}
+
+# Faceted density plot
+ggplot(taylor_album_songs, aes(x = energy, 
+                               fill = album_name)) +  # Plot energy to x-axis and fill by album_name
+  geom_density(alpha = 0.6, adjust = 1, show.legend = FALSE) +  # Add density plot with transparency and no legend
+  labs(title = "Taylor Swift Energy by Album",
+       x = NULL,
+       y = NULL) +
+  scale_fill_taylor(palette = "taylorRed") +  # Apply Taylor's color palette
+  theme_minimal() + 
+  facet_wrap(~ album_name) +  # Facet by album_name with free axis
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), 
+           axis.text.x = element_blank()) + # Center and bold the title, remove x-axis text)
+  transition_states(album_release,
+                    transition_length = 3,  # Duration of transition between plot animation
+                    state_length = 1) 
+```
+```
+
+
