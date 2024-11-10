@@ -1,0 +1,112 @@
+---
+title: "tidytuesday_Week10"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-11-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE, 
+  warning = FALSE, 
+  fig.path = "../Output/"
+)
+```
+
+#Introduction Tidy Tuesday is an international community of R enthusiasts that create visuals from the same dataset. The goal is to practice plotting and learn something new every week.This week is about monster movies.
+
+![Monsters](https://imgix.bustle.com/uploads/getty/2024/8/13/4ef943c7/artwork-for-the-1954.jpg?w=400&h=300&fit=crop&crop=faces&q=50&dpr=2)
+
+#Load Libraries
+
+```{r}
+library(tidytuesdayR)
+library(here)
+library(janitor)
+library(ggplot2)
+library(tidyverse)
+library(tayloRswift)
+
+```
+
+#Clean the data
+
+```{r}
+imdb_ratings <- readr::read_tsv(
+  "https://datasets.imdbws.com/title.ratings.tsv.gz",
+  na = c("", "NA", "\\N")
+) |> 
+  janitor::clean_names() |> 
+  dplyr::filter(num_votes >= 10)
+imdb_titles <- readr::read_tsv(
+  "https://datasets.imdbws.com/title.basics.tsv.gz",
+  na = c("", "NA", "\\N")
+) |> 
+  janitor::clean_names() |> 
+  # A handful of titles have miscoded data, which can be detected by cases where
+  # the "isAdult" field has a value other than 0 or 1. That's convenient,
+  # because I want to get rid of anything other than 0.
+  dplyr::filter(is_adult == 0) |>
+  dplyr::select(-is_adult) |>
+  dplyr::mutate(
+    # Create a column for easier title searching.
+    simple_title = tolower(primary_title) |> 
+      stringr::str_remove_all("[[:punct:]]")
+  )
+
+rated_titles <- imdb_titles |> 
+  dplyr::inner_join(imdb_ratings, by = "tconst")
+
+monster_movies <- rated_titles |> 
+  dplyr::filter(title_type %in% c("movie", "video", "tvMovie")) |> 
+  # "end_year" is only relevant for series.
+  dplyr::select(-"end_year") |>
+  dplyr::rename("year" = "start_year") |> 
+  dplyr::filter(stringr::str_detect(simple_title, "monster")) |> 
+  dplyr::mutate(
+    dplyr::across(
+      c("year", "runtime_minutes", "num_votes"),
+      as.integer
+    )
+  )
+
+monster_movie_genres <- monster_movies |> 
+  dplyr::select(tconst, genres) |> 
+  tidyr::separate_longer_delim(genres, ",")
+
+```
+
+#Inspect the data
+
+```{r}
+
+View(monster_movies)
+```
+
+#Plot
+
+```{r}
+
+# Filter monster movies from 2020 to 2025
+monster_movies_2019_2024 <- monster_movies %>%
+  filter(year >= 2019 & year <= 2024)
+
+
+# Density plot of average ratings of monster movies by year
+ggplot(monster_movies_2019_2024, aes(x = average_rating, fill = factor(year))) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Monster Movies Average Rating by Year",
+       x = NULL,
+       y = NULL,
+       fill = "Year") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +  # Center the title
+  facet_wrap(~ year) +  # Facet by year
+  theme(strip.text = element_text(size = 10)) + 
+  theme(legend.position = "none") + # Remove the legend
+  scale_fill_taylor(palette = "taylor1989")  # Use Taylor Swift's "taylor1989" color palette for fill
+
+```
