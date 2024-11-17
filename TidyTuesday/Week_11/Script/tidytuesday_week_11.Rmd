@@ -1,0 +1,76 @@
+---
+title: "tidytuesday_week_11"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-11-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+  message = FALSE, 
+  warning = FALSE, fig.path = "../Output/")
+```
+
+# Introduction
+#Introduction Tidy Tuesday is an international community of R enthusiasts that create visuals from the same dataset. The goal is to practice plotting and learn something new every week.This week is about democracy data. 
+
+![Caribbean Democracy](https://images.theconversation.com/files/575051/original/file-20240212-22-f6zizy.jpg?ixlib=rb-4.1.0&rect=0%2C179%2C5700%2C3615&q=45&auto=format&w=926&fit=clip)
+
+#Library
+```{r}
+library(tidyverse)
+library(here)
+library(ggplot2)
+library(pak)
+library(janitor)
+library(maps)
+
+```
+
+
+#Data
+```{r}
+
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-05/democracy_data.csv')%>%
+  clean_names()
+
+View(head(democracy_data))
+```
+
+#Plot
+```{r}
+# List of Caribbean countries
+caribbean_countries <- c("Antigua and Barbuda", "Bahamas", "Barbados", "Cuba", 
+                         "Dominica", "Dominican Republic", "Grenada", "Haiti", "Jamaica", 
+                         "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Trinidad and Tobago", "US Virgin Islands", "Puerto Rico")
+
+# Load map data
+world_map <- map_data("world")
+
+# Merge map data with democracy data
+merged_data <- world_map %>%
+  left_join(democracy_data, by = c("region" = "country_name"))
+
+# Filter to include only Caribbean countries
+caribbean_data <- merged_data %>%
+  filter(region %in% caribbean_countries)
+
+# Plot map showing democracy status for the Caribbean
+ggplot(caribbean_data, aes(x = long, y = lat, group = group, fill = factor(is_democracy))) +
+  geom_polygon(color = "black") +  # Outline the countries
+  scale_fill_manual(values = c("red", "green")) +  # Red for non-democracies, green for democracies
+  labs(title = "Caribbean Democracy Status",
+       fill = NULL ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Center and bold the title
+    plot.background = element_rect(fill = "lightblue", color = NA)
+  )
+```
+
+
+
+
+
+
