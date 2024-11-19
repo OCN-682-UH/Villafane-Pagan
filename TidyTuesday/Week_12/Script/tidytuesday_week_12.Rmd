@@ -1,0 +1,82 @@
+---
+title: "tidytuesday_week_12"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-11-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, 
+                      fig.path = "../Output/")
+
+```
+
+#Introduction 
+Introduction Tidy Tuesday is an international community of R enthusiasts that create visuals from the same dataset. The goal is to practice plotting and learn something new every week.This week is about ISO Country Codes. 
+
+#Libraries 
+```{r}
+library(tidyverse)
+library(here)
+library(ggplot2)
+library(pak)
+library(maps)
+library(mapdata)
+library(mapproj)
+library(ggspatial)
+library(ISOcodes)
+library(janitor)
+
+```
+
+#Data cleanup 
+```{r}
+countries <- 
+  ISOcodes::ISO_3166_1 |> 
+  tibble::as_tibble() |> 
+  dplyr::mutate(Numeric = as.integer(Numeric)) |> 
+  janitor::clean_names()
+country_subdivisions <- 
+  ISOcodes::ISO_3166_2 |> 
+  tibble::as_tibble() |> 
+  janitor::clean_names() |> 
+  dplyr::mutate(
+    alpha_2 = stringr::str_extract(code, "^[^-]+(?=-)")
+  )
+former_countries <-
+  ISOcodes::ISO_3166_3 |> 
+  tibble::as_tibble() |> 
+  janitor::clean_names()
+```
+
+#Plot
+```{r}
+# Map of the world with ISO numeric codes
+world_map <- map_data("world")
+
+# Load country ISO data
+countries <- ISOcodes::ISO_3166_1 |> 
+  tibble::as_tibble() |> 
+  janitor::clean_names()
+
+# Merge map data with ISO data
+map_data_with_iso <- world_map %>%
+  left_join(countries, by = c("region" = "name"))
+
+# Making sure numeric column is numeric
+map_data_with_iso <- map_data_with_iso %>%
+  mutate(numeric = as.numeric(numeric))
+
+# Ploting the map
+ggplot(data = map_data_with_iso, aes(x = long, y = lat, group = group, fill = numeric)) +
+  geom_polygon(color = "black") +
+  scale_fill_viridis_c() +  # continuous color scale
+  labs(title = "World Map with ISO Numeric Codes") +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank(),  plot.title = element_text(hjust = 0.5, face = "bold", size = 14))+
+  coord_sf(crs = 4326) +  # Set the coordinate system
+  annotation_scale(location = "bl", bar_cols = c("black", "white"), units = "km", width_hint = 0.5) + 
+  annotation_north_arrow(location = "tr", style = north_arrow_fancy_orienteering(), height = unit(1, "cm"), width = unit(1, "cm"))
+```
+```{
+
