@@ -1,0 +1,64 @@
+---
+title: "tidy_tuesday_week_15"
+author: "Jobel Y. Villafane Pagan"
+date: "2024-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.path = "../Output/")
+```
+
+# Introduction
+
+Introduction Tidy Tuesday is an international community of R enthusiasts that create visuals from the same dataset. The goal is to practice plotting and learn something new every week.This week is about holiday traveling. 
+
+# Libraries 
+```{r}
+library(tidytuesdayR)
+library(janitor)
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+library(sf)
+
+```
+
+# Data
+```{r}
+
+tuesdata <- tidytuesdayR::tt_load(2024, week = 52)
+
+global_holidays <- tuesdata$global_holidays
+monthly_passengers <- tuesdata$monthly_passengers
+
+# Drop rows with NA values
+monthly_passengers_clean <- monthly_passengers %>%
+  drop_na()
+
+```
+
+# Plot
+```{r}
+#bar plot for domestic vs international passengers by month and year
+ggplot(monthly_passengers_clean, aes(x = factor(Month), y = Total, fill = ifelse(Domestic > International, "Domestic", "International"))) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ Year, scales = "free_x") +
+  scale_fill_manual(values = c("Domestic" = "steelblue", "International" = "orange")) +
+  labs(
+    title = "Monthly Passengers: Domestic vs International by Year",
+    x = "Month",
+    y = "Total Passengers (Thousands)",
+    fill = "Passenger Type"
+  ) +
+  scale_x_discrete(labels = c("1" = "Jan", "2" = "Feb", "3" = "Mar", "4" = "Apr", "5" = "May", "6" = "Jun", 
+                              "7" = "Jul", "8" = "Aug", "9" = "Sep", "10" = "Oct", "11" = "Nov", "12" = "Dec")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 12, face = "bold"),
+    legend.position = "bottom"
+  )
+```
+
